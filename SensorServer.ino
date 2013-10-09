@@ -6,9 +6,6 @@
 #include <dht.h>
 #define dht_dpin 2
 dht DHT;
-//DHT.read11(dht_dpin);
-//DHT.humidity
-//DHT.temperature
 
 
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
@@ -61,7 +58,7 @@ void loop() {
     delay(1);
     // close the connection:
     client.stop();
-    Serial.println("client disonnected");
+    Serial.println("client disconnected");
   }
 }
 
@@ -80,22 +77,21 @@ void processRequest(EthernetClient client, String request) {
   client.println("{");
   
   DHT.read11(dht_dpin);
-  client.print("\t\"temperature\": \"");
-  client.print(DHT.temperature);
-  client.println("\",");
-  client.print("\t\"humidity\": \"");
-  client.print(DHT.humidity);
-  client.println("\",");
-  
+
+  outputPair(client, "temperature", "\""+String((int)DHT.temperature) + "C\"");
+  outputPair(client, "humidity", "\""+String((int)DHT.humidity) + "%\"");
+
+
   for (int analogChannel = 0; analogChannel < 6; analogChannel++) {
     int sensorReading = analogRead(analogChannel);
-    client.print("\t\"analog");
-    client.print(analogChannel);
-    client.print("\": ");
-    client.print(sensorReading);
-    client.println(",");
+    outputPair(client, "analog"+String(analogChannel), String(sensorReading) );
   }
   client.println("}");
+}
+
+
+void outputPair(EthernetClient client, String label, String value) {
+  client.println("\t\""+label+"\": "+value+",");
 }
 
 
