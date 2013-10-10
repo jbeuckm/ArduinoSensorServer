@@ -4,7 +4,7 @@
 
 // prepare for DHT module reading
 #include <dht.h>
-#define dht_dpin 2
+#define dht_dpin 5
 dht DHT;
 
 
