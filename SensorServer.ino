@@ -29,7 +29,7 @@ void loop() {
   EthernetClient client = server.available();
   if (client) {
     Serial.println("new client");
-    
+
     String request = "";
     
     // an http request ends with a blank line
@@ -64,24 +64,34 @@ void loop() {
 
 
 
+void processRequest(EthernetClient client, String request) {
 
-void outputPair(EthernetClient client, String label, String value) {
-  client.println("\t\""+label+"\": "+value+",");
+  parseRequest(request);
+
+  sendResponse(client);
+}
+
+
+void parseRequest(String request) {
+  int idx = request.indexOf("\n");
+  String firstLine = request.substring(0, idx);
+
+  Serial.println("firstLine = "+firstLine);
+  
+  idx = firstLine.indexOf(" ");
+  String method = firstLine.substring(0, idx);
+  
+  Serial.println("method = "+method);
 }
 
 
 
 
-void processRequest(EthernetClient client, String request) {
-  
-  int idx = request.indexOf("\n");
-  Serial.println(request.substring(0, idx));
-
-  
+void sendResponse(EthernetClient client) {
   // send a standard http response header
   client.println("HTTP/1.1 200 OK");
   client.println("Content-Type: application/json");
-  client.println("Connection: close");  // the connection will be closed after completion of the response
+  client.println("Connection: close"); 
   
   client.println();
   client.println("{");
@@ -98,4 +108,11 @@ void processRequest(EthernetClient client, String request) {
   }
   client.println("}");
 }
+
+void outputPair(EthernetClient client, String label, String value) {
+  client.println("\t\""+label+"\": "+value+",");
+}
+
+
+
 
