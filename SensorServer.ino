@@ -15,66 +15,33 @@ byte mac[] = {
 IPAddress ip(192,168,0,177);
 EthernetServer server(80);
 
-void setup() {
-  Serial.begin(9600);
+char new_state[1024];
 
+void setup()
+{
+  Serial.begin(9600);
+  // Start the Ethernet server:
   Ethernet.begin(mac, ip);
+
   server.begin();
-  Serial.print("server is at ");
+
+  // Set the digital pins ready to write to
+  for (int pin = 2; pin <= 9; pin++) {
+    pinMode(pin, OUTPUT);
+  }
+
+  Serial.print("Serving on http://");
   Serial.println(Ethernet.localIP());
 }
 
-
-char new_state[256];
-
-void loop() {
-/*
-  // listen for incoming clients
-  EthernetClient client = server.available();
-  if (client) {
-    Serial.println("new client");
-
-    String request = "";
-    
-    // an http request ends with a blank line
-    boolean currentLineIsBlank = true;
-    while (client.connected()) {
-      
-      if (client.available()) {
-        char c = client.read();
-        
-        request += c;
-
-        if (c == '\n' && currentLineIsBlank) {
-        
-          processRequest(client, request);
-
-          break;
-        }
-        if (c == '\n') {
-          currentLineIsBlank = true;
-        } 
-        else if (c != '\r') {
-          currentLineIsBlank = false;
-        }
-      }
-    }
-    // give the web browser time to receive the data
-    delay(1);
-    // close the connection:
-    client.stop();
-    Serial.println("client disconnected");
-  }
-*/
+void loop()
+{
   // listen for incoming clients
   EthernetClient client = server.available();
 
   if (client) {
 
-    Serial.println("Client connected");
-
-    String header = "";
-    String body_text = "";
+    // Serial.println("Client connected");
 
     while (client.connected()) {
 
@@ -84,17 +51,13 @@ void loop() {
 
       while(client.available()) {
         char c = client.read();
-        Serial.print(c);
-        if (c == '\r') {
-        Serial.print("\\r");
-        }
         if (c == '\n') {
 
           if ( i <= 2 ) {
 
             // an http request ends with a blank line
 
-            
+            sendPage(client);
             if ( head == 1 ) {
               body = 1;
               head = 0;
@@ -105,9 +68,6 @@ void loop() {
           i = -1;
 
         }
-        if (head == 1) {
-          header += c;
-        }
         if ( body == 1 ) {
           new_state[i] = c;
         }
@@ -117,41 +77,14 @@ void loop() {
       i = 0;
     }
 
-    sendResponse(client);
-
-    // give the web browser time to receive the data
-    delay(1);
-    // close the connection:
-    client.stop();
-    Serial.println("client disconnected");
-
-    String verb = getRequestVerb(header);
-    Serial.println("verb = "+verb);
-    if (verb == "POST") {
-      updateState(new_state);
+    // Serial.println("Disconnected");
+    /*
+    if ( strlen(new_state) > 0 ){
+      Serial.print ("[");
+      Serial.print(new_state);
+      Serial.println ("]");
     }
-
-  }
-}
-
-
-String getRequestVerb(String header) {
-  Serial.println("getRequestVerb()");
-  Serial.println(header);
-  int idx = header.indexOf("\n");
-  String firstLine = header.substring(0, idx);
-  
-  idx = firstLine.indexOf(" ");
-  String method = firstLine.substring(0, idx);
-
-  return method;  
-}
-
-
-void updateState(char *new_state) {
-  Serial.println("updateState()");
-  Serial.println(new_state);
-
+    */
     // Post data looks like pinD2=On
     if ( strncmp( new_state, "pinD", 4) == 0 ) {
       int pin = new_state[4] - 48; // Convert ascii to int
@@ -163,6 +96,36 @@ void updateState(char *new_state) {
         digitalWrite(pin, 0);
       }
     }
+
+  }
+
+}
+
+void sendPage(EthernetClient client)
+{
+
+  // Serial.println("Sending response");
+
+  // send a standard http response header
+  client.println("HTTP/1.0 200 OK\Content-Type: text/html\n\n<html>\n<head>");
+  client.println("<link rel='icon' href='data:;base64,iVBORw0KGgo='>");
+  client.println("<title>POST Pin controller</title>\n</head>\n<body>\n");
+  client.println("<h2>Buttons turn pins on or off</h2>");
+  client.println("<form method='post' action='/' name='pins'>");
+
+  char line[1024];
+  int pin;
+
+  for ( pin=2; pin<=9; pin++ ) {
+    sprintf(line, "<input name='pinD%d' type='submit' value='On' />\n", pin);
+    client.print(line);
+    sprintf(line, "<input name='pinD%d' type='submit' value='Off' /> %d<br />\n", pin, pin);
+    client.print(line);
+  }
+
+  client.println("</form>\n</body>\n</html>");
+  client.stop();
+
 }
 
 
