@@ -8,15 +8,16 @@
 dht DHT;
 
 
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+//byte mac[] = { 0xD5, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+byte mac[] = {
+  0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02
+};
 IPAddress ip(192,168,0,177);
 EthernetServer server(80);
 
 void setup() {
   Serial.begin(9600);
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for Leonardo only
-  }
+
   Ethernet.begin(mac, ip);
   server.begin();
   Serial.print("server is at ");
@@ -24,7 +25,10 @@ void setup() {
 }
 
 
+char new_state[256];
+
 void loop() {
+/*
   // listen for incoming clients
   EthernetClient client = server.available();
   if (client) {
@@ -35,6 +39,7 @@ void loop() {
     // an http request ends with a blank line
     boolean currentLineIsBlank = true;
     while (client.connected()) {
+      
       if (client.available()) {
         char c = client.read();
         
@@ -60,31 +65,105 @@ void loop() {
     client.stop();
     Serial.println("client disconnected");
   }
+*/
+  // listen for incoming clients
+  EthernetClient client = server.available();
+
+  if (client) {
+
+    Serial.println("Client connected");
+
+    String header = "";
+    String body_text = "";
+
+    while (client.connected()) {
+
+      int i = 0;
+      int head = 1;
+      int body = 0;
+
+      while(client.available()) {
+        char c = client.read();
+        Serial.print(c);
+        if (c == '\r') {
+        Serial.print("\\r");
+        }
+        if (c == '\n') {
+
+          if ( i <= 2 ) {
+
+            // an http request ends with a blank line
+
+            
+            if ( head == 1 ) {
+              body = 1;
+              head = 0;
+            }
+
+          }
+
+          i = -1;
+
+        }
+        if (head == 1) {
+          header += c;
+        }
+        if ( body == 1 ) {
+          new_state[i] = c;
+        }
+        i++;
+        new_state[i] = '\0';
+      }
+      i = 0;
+    }
+
+    sendResponse(client);
+
+    // give the web browser time to receive the data
+    delay(1);
+    // close the connection:
+    client.stop();
+    Serial.println("client disconnected");
+
+    String verb = getRequestVerb(header);
+    Serial.println("verb = "+verb);
+    if (verb == "POST") {
+      updateState(new_state);
+    }
+
+  }
 }
 
 
-
-void processRequest(EthernetClient client, String request) {
-
-  parseRequest(request);
-
-  sendResponse(client);
-}
-
-
-void parseRequest(String request) {
-  int idx = request.indexOf("\n");
-  String firstLine = request.substring(0, idx);
-
-  Serial.println("firstLine = "+firstLine);
+String getRequestVerb(String header) {
+  Serial.println("getRequestVerb()");
+  Serial.println(header);
+  int idx = header.indexOf("\n");
+  String firstLine = header.substring(0, idx);
   
   idx = firstLine.indexOf(" ");
   String method = firstLine.substring(0, idx);
-  
-  Serial.println("method = "+method);
+
+  return method;  
 }
 
 
+void updateState(char *new_state) {
+  Serial.println("updateState()");
+  Serial.println(new_state);
+
+    // Post data looks like pinD2=On
+    if ( strncmp( new_state, "pinD", 4) == 0 ) {
+      int pin = new_state[4] - 48; // Convert ascii to int
+      Serial.println(pin);
+      if ( strncmp( new_state+5, "=On", 3) == 0 ) {
+        digitalWrite(pin, 1);
+      } 
+      else if ( strncmp( new_state+5, "=Off", 4) == 0 ) {
+        digitalWrite(pin, 0);
+      }
+    }
+}
 
 
 void sendResponse(EthernetClient client) {
