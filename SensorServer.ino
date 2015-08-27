@@ -55,13 +55,9 @@ void loop()
         char c = client.read();
         if (c == '\n') {
 
-          if ( i <= 2 ) {
+          if ( i <= 2 ) { // detect a blank line
 
-            // an http request ends with a blank line
-
-//            sendPage(client);
               sendResponse(client);
-
 
             if ( head == 1 ) {
               body = 1;
@@ -127,7 +123,7 @@ void sendResponse(EthernetClient client) {
   outputPair(client, "humidity", "\""+String((int)DHT.humidity) + "%\"", true);
 
   for (int state_index=1; state_index<14; state_index++) {
-     outputPair(client, "pin"+String(state_index), String(digital_state[state_index]), true);
+     outputPair(client, "pinD"+String(state_index), String(digital_state[state_index]), true);
   }
 
   for (int analogChannel = 0; analogChannel < 6; analogChannel++) {
