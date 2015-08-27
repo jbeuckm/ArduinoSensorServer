@@ -57,7 +57,10 @@ void loop()
 
             // an http request ends with a blank line
 
-            sendPage(client);
+//            sendPage(client);
+              sendResponse(client);
+
+
             if ( head == 1 ) {
               body = 1;
               head = 0;
@@ -101,38 +104,14 @@ void loop()
 
 }
 
-void sendPage(EthernetClient client)
-{
-
-  // Serial.println("Sending response");
-
-  // send a standard http response header
-  client.println("HTTP/1.0 200 OK\Content-Type: text/html\n\n<html>\n<head>");
-  client.println("<link rel='icon' href='data:;base64,iVBORw0KGgo='>");
-  client.println("<title>POST Pin controller</title>\n</head>\n<body>\n");
-  client.println("<h2>Buttons turn pins on or off</h2>");
-  client.println("<form method='post' action='/' name='pins'>");
-
-  char line[1024];
-  int pin;
-
-  for ( pin=2; pin<=9; pin++ ) {
-    sprintf(line, "<input name='pinD%d' type='submit' value='On' />\n", pin);
-    client.print(line);
-    sprintf(line, "<input name='pinD%d' type='submit' value='Off' /> %d<br />\n", pin, pin);
-    client.print(line);
-  }
-
-  client.println("</form>\n</body>\n</html>");
-  client.stop();
-
-}
 
 
 void sendResponse(EthernetClient client) {
   // send a standard http response header
   client.println("HTTP/1.1 200 OK");
   client.println("Content-Type: application/json");
+  client.println("Access-Control-Allow-Origin: *");
+  client.println("Access-Control-Allow-Methods: POST, GET, OPTIONS");
   client.println("Connection: close"); 
   
   client.println();
@@ -149,6 +128,7 @@ void sendResponse(EthernetClient client) {
     outputPair(client, "analog"+String(analogChannel), String(sensorReading) );
   }
   client.println("}");
+  client.stop();
 }
 
 void outputPair(EthernetClient client, String label, String value) {
