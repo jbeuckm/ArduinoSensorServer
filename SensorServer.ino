@@ -119,20 +119,22 @@ void sendResponse(EthernetClient client) {
   
   DHT.read11(dht_dpin);
 
-  outputPair(client, "temperature", "\""+String((int)DHT.temperature) + "C\"");
-  outputPair(client, "humidity", "\""+String((int)DHT.humidity) + "%\"");
+  outputPair(client, "temperature", "\""+String((int)DHT.temperature) + "C\"", true);
+  outputPair(client, "humidity", "\""+String((int)DHT.humidity) + "%\"", true);
 
 
   for (int analogChannel = 0; analogChannel < 6; analogChannel++) {
     int sensorReading = analogRead(analogChannel);
-    outputPair(client, "analog"+String(analogChannel), String(sensorReading) );
+    outputPair(client, "analog"+String(analogChannel), String(sensorReading), (analogChannel+1) < 6 );
   }
   client.println("}");
   client.stop();
 }
 
-void outputPair(EthernetClient client, String label, String value) {
-  client.println("\t\""+label+"\": "+value+",");
+void outputPair(EthernetClient client, String label, String value, boolean comma) {
+  client.print("\t\""+label+"\": "+value);
+  if (comma) client.println(",");
+  else client.println("");
 }
 
 
