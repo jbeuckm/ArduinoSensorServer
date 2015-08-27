@@ -15,6 +15,8 @@ byte mac[] = {
 IPAddress ip(192,168,0,177);
 EthernetServer server(80);
 
+boolean digital_state[14];
+
 char new_state[1024];
 
 void setup()
@@ -94,9 +96,11 @@ void loop()
       Serial.println(pin);
       if ( strncmp( new_state+5, "=On", 3) == 0 ) {
         digitalWrite(pin, 1);
+        digital_state[pin] = true;
       } 
       else if ( strncmp( new_state+5, "=Off", 4) == 0 ) {
         digitalWrite(pin, 0);
+        digital_state[pin] = false;
       }
     }
 
@@ -122,6 +126,9 @@ void sendResponse(EthernetClient client) {
   outputPair(client, "temperature", "\""+String((int)DHT.temperature) + "C\"", true);
   outputPair(client, "humidity", "\""+String((int)DHT.humidity) + "%\"", true);
 
+  for (int state_index=1; state_index<14; state_index++) {
+     outputPair(client, "pin"+String(state_index), String(digital_state[state_index]), true);
+  }
 
   for (int analogChannel = 0; analogChannel < 6; analogChannel++) {
     int sensorReading = analogRead(analogChannel);
